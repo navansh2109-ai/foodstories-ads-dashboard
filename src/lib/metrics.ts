@@ -19,16 +19,24 @@ export interface Derived extends Aggregatable {
   cpm: number; // spend / impressions * 1000
 }
 
+// Coerce to Number defensively: Postgres NUMERIC/BIGINT columns come back as
+// strings from some drivers, and a stray string here would turn `+=` into
+// string concatenation instead of arithmetic.
+function n(v: unknown): number {
+  const num = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(num) ? num : 0;
+}
+
 export function sumAggregatable<T extends Aggregatable>(rows: T[]): Aggregatable {
   return rows.reduce(
     (acc, r) => ({
-      spend: acc.spend + r.spend,
-      impressions: acc.impressions + r.impressions,
-      clicks: acc.clicks + r.clicks,
-      add_to_cart: acc.add_to_cart + r.add_to_cart,
-      initiate_checkout: acc.initiate_checkout + r.initiate_checkout,
-      purchases: acc.purchases + r.purchases,
-      purchase_value: acc.purchase_value + r.purchase_value,
+      spend: acc.spend + n(r.spend),
+      impressions: acc.impressions + n(r.impressions),
+      clicks: acc.clicks + n(r.clicks),
+      add_to_cart: acc.add_to_cart + n(r.add_to_cart),
+      initiate_checkout: acc.initiate_checkout + n(r.initiate_checkout),
+      purchases: acc.purchases + n(r.purchases),
+      purchase_value: acc.purchase_value + n(r.purchase_value),
     }),
     { spend: 0, impressions: 0, clicks: 0, add_to_cart: 0, initiate_checkout: 0, purchases: 0, purchase_value: 0 }
   );

@@ -132,9 +132,18 @@ export async function queryMetrics(filter: MetricsFilter): Promise<MetricsRow[]>
   addInClause("campaign", filter.campaign);
   addInClause("ad_group", filter.adGroup);
 
+  // Cast NUMERIC/BIGINT columns to float8 — node-postgres returns those types
+  // as strings by default (to avoid silent precision loss), which would make
+  // every downstream `+=` sum a string concatenation instead of arithmetic.
   const { rows } = await db.query(
     `SELECT platform, city, campaign, ad_group, date::text, hour,
-            spend, impressions, clicks, add_to_cart, initiate_checkout, purchases, purchase_value
+            spend::float8 AS spend,
+            impressions::float8 AS impressions,
+            clicks::float8 AS clicks,
+            add_to_cart::float8 AS add_to_cart,
+            initiate_checkout::float8 AS initiate_checkout,
+            purchases::float8 AS purchases,
+            purchase_value::float8 AS purchase_value
      FROM hourly_ad_metrics
      WHERE ${conditions.join(" AND ")}
      ORDER BY date, hour`,

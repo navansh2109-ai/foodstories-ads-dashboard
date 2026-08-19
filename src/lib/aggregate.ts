@@ -1,5 +1,12 @@
 import { Aggregatable, Derived, deriveMetrics } from "./metrics";
 
+// See metrics.ts `n()` — same defensive numeric coercion, needed here too
+// since these functions sum raw rows independently of sumAggregatable.
+function n(v: unknown): number {
+  const num = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(num) ? num : 0;
+}
+
 export interface RawRow extends Aggregatable {
   platform: string;
   city: string;
@@ -37,13 +44,13 @@ export function buildTrend(rows: RawRow[], groupBy: GroupByKey): TrendPoint[] {
       groupMap.get(groupKey) ??
       { spend: 0, impressions: 0, clicks: 0, add_to_cart: 0, initiate_checkout: 0, purchases: 0, purchase_value: 0 };
     groupMap.set(groupKey, {
-      spend: prev.spend + row.spend,
-      impressions: prev.impressions + row.impressions,
-      clicks: prev.clicks + row.clicks,
-      add_to_cart: prev.add_to_cart + row.add_to_cart,
-      initiate_checkout: prev.initiate_checkout + row.initiate_checkout,
-      purchases: prev.purchases + row.purchases,
-      purchase_value: prev.purchase_value + row.purchase_value,
+      spend: prev.spend + n(row.spend),
+      impressions: prev.impressions + n(row.impressions),
+      clicks: prev.clicks + n(row.clicks),
+      add_to_cart: prev.add_to_cart + n(row.add_to_cart),
+      initiate_checkout: prev.initiate_checkout + n(row.initiate_checkout),
+      purchases: prev.purchases + n(row.purchases),
+      purchase_value: prev.purchase_value + n(row.purchase_value),
     });
   }
 
@@ -78,13 +85,13 @@ export function buildBreakdown(rows: RawRow[]): BreakdownRow[] {
     const key = `${row.platform}|${row.city}|${row.campaign}|${row.ad_group}`;
     const prev = map.get(key);
     if (prev) {
-      prev.agg.spend += row.spend;
-      prev.agg.impressions += row.impressions;
-      prev.agg.clicks += row.clicks;
-      prev.agg.add_to_cart += row.add_to_cart;
-      prev.agg.initiate_checkout += row.initiate_checkout;
-      prev.agg.purchases += row.purchases;
-      prev.agg.purchase_value += row.purchase_value;
+      prev.agg.spend += n(row.spend);
+      prev.agg.impressions += n(row.impressions);
+      prev.agg.clicks += n(row.clicks);
+      prev.agg.add_to_cart += n(row.add_to_cart);
+      prev.agg.initiate_checkout += n(row.initiate_checkout);
+      prev.agg.purchases += n(row.purchases);
+      prev.agg.purchase_value += n(row.purchase_value);
     } else {
       map.set(key, {
         city: row.city,
@@ -92,13 +99,13 @@ export function buildBreakdown(rows: RawRow[]): BreakdownRow[] {
         ad_group: row.ad_group,
         platform: row.platform,
         agg: {
-          spend: row.spend,
-          impressions: row.impressions,
-          clicks: row.clicks,
-          add_to_cart: row.add_to_cart,
-          initiate_checkout: row.initiate_checkout,
-          purchases: row.purchases,
-          purchase_value: row.purchase_value,
+          spend: n(row.spend),
+          impressions: n(row.impressions),
+          clicks: n(row.clicks),
+          add_to_cart: n(row.add_to_cart),
+          initiate_checkout: n(row.initiate_checkout),
+          purchases: n(row.purchases),
+          purchase_value: n(row.purchase_value),
         },
       });
     }
