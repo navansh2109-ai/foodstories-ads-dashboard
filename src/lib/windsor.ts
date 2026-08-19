@@ -86,14 +86,22 @@ export async function fetchMetaRows(dateFrom: string, dateTo: string): Promise<N
     date_to: dateTo,
   });
 
-  return rows.map((r): NormalizedRow => {
+  // SECURITY: the `accounts` param above is a request-side filter, not a
+  // guarantee — if Windsor.ai ever ignores/broadens it, rows from OTHER
+  // clients on this Windsor workspace would land here. Never fall back to
+  // an "Unmapped" bucket for an unrecognized account_id — drop the row
+  // outright. This is the last line of defense against cross-client data
+  // leaking into Foodstories' dashboard.
+  const out: NormalizedRow[] = [];
+  for (const r of rows) {
     const accountId = String(r.account_id ?? "");
     const known = accountsById.get(accountId);
-    return {
+    if (!known) continue; // not one of Foodstories' 4 Meta accounts — discard
+    out.push({
       platform: "meta",
       account_id: accountId,
-      account_name: known?.name ?? String(r.account_name ?? "Unknown"),
-      city: known?.city ?? "Unmapped",
+      account_name: known.name,
+      city: known.city,
       campaign: String(r.campaign ?? ""),
       ad_group: String(r.adset_name ?? ""),
       date: String(r.date ?? dateFrom),
@@ -105,11 +113,13 @@ export async function fetchMetaRows(dateFrom: string, dateTo: string): Promise<N
       initiate_checkout: num(r.actions_initiate_checkout),
       purchases: num(r.actions_purchase),
       purchase_value: num(r.action_values_purchase),
-    };
-  });
+    });
+  }
+  return out;
 }
 
 const GOOGLE_FIELDS = [
+  "account_id",
   "campaign_name",
   "ad_group_name",
   "date",
@@ -121,6 +131,13 @@ const GOOGLE_FIELDS = [
   "conversions_value",
 ].join(",");
 
+// Windsor may return the Google Ads customer ID with or without dashes
+// ("138-894-0094" vs "1388940094") — compare digits only so formatting
+// differences don't cause a false mismatch (or worse, a false match).
+function digitsOnly(s: string): string {
+  return s.replace(/\D/g, "");
+}
+
 export async function fetchGoogleRows(dateFrom: string, dateTo: string): Promise<NormalizedRow[]> {
   const rows = await windsorGet("google_ads", {
     accounts: GOOGLE_ACCOUNT.id,
@@ -129,9 +146,18 @@ export async function fetchGoogleRows(dateFrom: string, dateTo: string): Promise
     date_to: dateTo,
   });
 
-  return rows.map((r): NormalizedRow => {
+  const expectedId = digitsOnly(GOOGLE_ACCOUNT.id);
+
+  // SECURITY: same reasoning as fetchMetaRows above — the `accounts` param
+  // is a request-side filter, not a guarantee. Every row's account_id is
+  // checked here and anything that isn't Foodstories' single Google Ads
+  // account is dropped, never included.
+  const out: NormalizedRow[] = [];
+  for (const r of rows) {
+    const rowAccountId = digitsOnly(String(r.account_id ?? ""));
+    if (rowAccountId !== expectedId) continue; // not Foodstories' account — discard
     const campaign = String(r.campaign_name ?? "");
-    return {
+    out.push({
       platform: "google",
       account_id: GOOGLE_ACCOUNT.id,
       account_name: GOOGLE_ACCOUNT.name,
@@ -150,8 +176,9 @@ export async function fetchGoogleRows(dateFrom: string, dateTo: string): Promise
       initiate_checkout: 0,
       purchases: num(r.conversions),
       purchase_value: num(r.conversions_value),
-    };
-  });
+    });
+  }
+  return out;
 }
 
 export async function fetchAllRows(dateFrom: string, dateTo: string): Promise<NormalizedRow[]> {
