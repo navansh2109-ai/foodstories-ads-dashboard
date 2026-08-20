@@ -102,6 +102,8 @@ export async function fetchMetaRows(dateFrom: string, dateTo: string): Promise<N
       account_id: accountId,
       account_name: known.name,
       city: known.city || resolveGoogleCity(String(r.campaign ?? "") + " " + String(r.adset_name ?? "")), // name decides; account is only a fallback
+      campaign: String(r.campaign ?? ""),
+      ad_group: String(r.adset_name ?? ""),
       date: String(r.date ?? dateFrom),
       hour: parseMetaHour(r.hourly_stats_aggregated_by_advertiser_time_zone),
       spend: num(r.spend),
