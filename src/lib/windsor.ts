@@ -121,7 +121,7 @@ export async function fetchMetaRows(dateFrom: string, dateTo: string): Promise<N
 const GOOGLE_FIELDS = [
   "account_id",
   "campaign_name",
-  "ad_group_name",
+  "adgroup",
   "date",
   "hour",
   "cost",
@@ -163,7 +163,7 @@ export async function fetchGoogleRows(dateFrom: string, dateTo: string): Promise
       account_name: GOOGLE_ACCOUNT.name,
       city: resolveGoogleCity(campaign),
       campaign,
-      ad_group: String(r.ad_group_name ?? ""),
+      ad_group: String(r.adgroup ?? ""),
       date: String(r.date ?? dateFrom),
       hour: num(r.hour),
       spend: num(r.cost),
