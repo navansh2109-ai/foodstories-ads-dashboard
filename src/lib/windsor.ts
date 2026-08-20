@@ -101,7 +101,7 @@ export async function fetchMetaRows(dateFrom: string, dateTo: string): Promise<N
       platform: "meta",
       account_id: accountId,
       account_name: known.name,
-      city: known.city,
+      city: known.city || resolveGoogleCity(String(r.campaign ?? "") + " " + String(r.adset_name ?? "")), // name decides; account is only a fallback
       campaign: String(r.campaign ?? ""),
       ad_group: String(r.adset_name ?? ""),
       date: String(r.date ?? dateFrom),

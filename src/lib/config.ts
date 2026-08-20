@@ -9,9 +9,11 @@ export interface MetaAccount {
   city: string;
 }
 
-// Meta (Facebook/Instagram) ad accounts — city is structural (one account per city).
+// Meta ad accounts. "city" is a FALLBACK only, used when the campaign and ad-set
+// names carry no city token. "foodstories Main" is mixed-city (Mumbai, Delhi and
+// GGM all run from it), so it has none — inheriting a city from it was the bug.
 export const META_ACCOUNTS: MetaAccount[] = [
-  { id: "929239662040137", name: "foodstories Main", city: "All / HQ" },
+  { id: "929239662040137", name: "foodstories Main", city: "" },
   { id: "8631371813636214", name: "Foodstories - Hyderabad", city: "Hyderabad" },
   { id: "1179134110540058", name: "Foodstories - Bangalore", city: "Bangalore" },
   { id: "2325798964591693", name: "Foodstories - Gurugram", city: "Gurugram" },
@@ -29,11 +31,12 @@ interface CityRule {
 }
 
 const GOOGLE_CITY_RULES: CityRule[] = [
-  { city: "Hyderabad", patterns: [/hyd/i, /hyderabad/i, /secunderabad/i] },
-  { city: "Bangalore", patterns: [/\bblr\b/i, /bangalore/i, /bengaluru/i] },
-  { city: "Gurugram", patterns: [/\bggm\b/i, /gurgaon/i, /gurugram/i, /delhi/i, /\bncr\b/i] },
-  { city: "Mumbai", patterns: [/\bmum\b/i, /mumbai/i, /bandra/i, /lokhandwala/i, /\bpow\b/i] },
-  { city: "All Cities", patterns: [/allcity/i, /all[\s_-]?city/i, /pan[\s_-]?india/i] },
+  { city: "All Cities", patterns: [/all[\s_-]?cit(y|ies)/i, /national/i, /pan[\s_-]?india/i] },
+  { city: "Hyderabad", patterns: [/(?<![a-z0-9])(hyd|hyderabad|secunderabad)(?![a-z0-9])/i] },
+  { city: "Bangalore", patterns: [/(?<![a-z0-9])(blr|bangalore|bengaluru)(?![a-z0-9])/i] },
+  { city: "Delhi", patterns: [/(?<![a-z0-9])(delhi|del|ncr)(?![a-z0-9])/i] },
+  { city: "Gurugram", patterns: [/(?<![a-z0-9])(ggm|gurgaon|gurugram)(?![a-z0-9])/i] },
+  { city: "Mumbai", patterns: [/(?<![a-z0-9])(mum|mumbai|mumcity|bandra|powai|pow|lokhandwala|lok|andheri|juhu)(?![a-z0-9])/i] },
 ];
 
 export function resolveGoogleCity(campaignName: string | null | undefined): string {
@@ -45,7 +48,7 @@ export function resolveGoogleCity(campaignName: string | null | undefined): stri
 }
 
 export const TRACKED_CITIES = [
-  "All / HQ",
+    "Delhi",
   "Hyderabad",
   "Bangalore",
   "Gurugram",
